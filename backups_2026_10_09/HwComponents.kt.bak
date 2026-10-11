@@ -1,0 +1,311 @@
+package com.homeworkout.app.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.homeworkout.app.ui.theme.BorderSoft
+import com.homeworkout.app.ui.theme.BrandGreen
+import com.homeworkout.app.ui.theme.BrandGreenDark
+import com.homeworkout.app.ui.theme.BrandGreenSoft
+import com.homeworkout.app.ui.theme.BrandMuted
+import com.homeworkout.app.ui.theme.BrandNavy
+import com.homeworkout.app.ui.theme.SurfaceWhite
+
+enum class HwNavTab {
+    Home,
+    Workouts,
+    Progress,
+    Coach,
+    Profile
+}
+
+@Composable
+fun HwBackButton(
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .size(44.dp)
+            .clickable(onClick = onClick),
+        shape = CircleShape,
+        color = SurfaceWhite,
+        border = BorderStroke(1.dp, BorderSoft),
+        shadowElevation = 1.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(18.dp)) {
+                val stroke = Stroke(width = 3.2f, cap = StrokeCap.Round)
+                drawLine(
+                    color = BrandNavy,
+                    start = Offset(size.width * 0.62f, size.height * 0.22f),
+                    end = Offset(size.width * 0.28f, size.height * 0.50f),
+                    strokeWidth = stroke.width,
+                    cap = StrokeCap.Round
+                )
+                drawLine(
+                    color = BrandNavy,
+                    start = Offset(size.width * 0.28f, size.height * 0.50f),
+                    end = Offset(size.width * 0.62f, size.height * 0.78f),
+                    strokeWidth = stroke.width,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HwScreenHeader(
+    eyebrow: String,
+    title: String,
+    onBack: (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (onBack != null) {
+            HwBackButton(onClick = onBack)
+            Spacer(modifier = Modifier.width(12.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = eyebrow,
+                color = BrandGreenDark,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.2.sp
+            )
+            Text(
+                text = title,
+                color = BrandNavy,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+
+        trailing?.invoke()
+    }
+}
+
+@Composable
+fun HwPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(52.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = BrandGreen,
+            contentColor = Color.White,
+            disabledContainerColor = BrandGreen.copy(alpha = 0.45f)
+        )
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+    }
+}
+
+@Composable
+fun HwCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        border = BorderStroke(1.dp, BorderSoft),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun HwBottomNav(
+    selected: HwNavTab,
+    onHome: () -> Unit,
+    onWorkouts: () -> Unit,
+    onProgress: () -> Unit,
+    onCoach: () -> Unit,
+    onProfile: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        color = SurfaceWhite,
+        shadowElevation = 10.dp,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HwNavItem("Home", selected == HwNavTab.Home, onHome) { HwHomeGlyph(it) }
+            HwNavItem("Workouts", selected == HwNavTab.Workouts, onWorkouts) { HwGridGlyph(it) }
+            HwNavItem("Progress", selected == HwNavTab.Progress, onProgress) { HwChartGlyph(it) }
+            HwNavItem("AI Coach", selected == HwNavTab.Coach, onCoach) { HwSparkGlyph(it) }
+            HwNavItem("Profile", selected == HwNavTab.Profile, onProfile) { HwPersonGlyph(it) }
+        }
+    }
+}
+
+@Composable
+private fun HwNavItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable (Color) -> Unit
+) {
+    val color = if (selected) BrandGreenDark else BrandMuted
+
+    Column(
+        modifier = Modifier
+            .width(64.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(if (selected) BrandGreenSoft else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            icon(color)
+        }
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = label,
+            color = color,
+            fontSize = 9.sp,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun HwHomeGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 2.4f, cap = StrokeCap.Round)
+        drawLine(color, Offset(w * 0.12f, h * 0.52f), Offset(w * 0.50f, h * 0.18f), stroke.width, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.50f, h * 0.18f), Offset(w * 0.88f, h * 0.52f), stroke.width, StrokeCap.Round)
+        drawRect(
+            color = color,
+            topLeft = Offset(w * 0.28f, h * 0.48f),
+            size = Size(w * 0.44f, h * 0.38f),
+            style = stroke
+        )
+    }
+}
+
+@Composable
+private fun HwGridGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val pad = size.width * 0.12f
+        val gap = size.width * 0.12f
+        val cell = (size.width - pad * 2 - gap) / 2f
+        repeat(2) { row ->
+            repeat(2) { col ->
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(pad + col * (cell + gap), pad + row * (cell + gap)),
+                    size = Size(cell, cell),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HwChartGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val stroke = Stroke(width = 2.4f, cap = StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.18f, size.height * 0.82f), Offset(size.width * 0.18f, size.height * 0.42f), stroke.width, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.50f, size.height * 0.82f), Offset(size.width * 0.50f, size.height * 0.22f), stroke.width, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.82f, size.height * 0.82f), Offset(size.width * 0.82f, size.height * 0.52f), stroke.width, StrokeCap.Round)
+    }
+}
+
+@Composable
+private fun HwSparkGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val c = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(color = color, radius = 3.2f, center = c)
+        drawLine(color, Offset(c.x, size.height * 0.08f), Offset(c.x, size.height * 0.28f), 2.2f, StrokeCap.Round)
+        drawLine(color, Offset(c.x, size.height * 0.72f), Offset(c.x, size.height * 0.92f), 2.2f, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.08f, c.y), Offset(size.width * 0.28f, c.y), 2.2f, StrokeCap.Round)
+        drawLine(color, Offset(size.width * 0.72f, c.y), Offset(size.width * 0.92f, c.y), 2.2f, StrokeCap.Round)
+    }
+}
+
+@Composable
+private fun HwPersonGlyph(color: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        drawCircle(color = color, radius = size.width * 0.16f, center = Offset(size.width / 2f, size.height * 0.28f))
+        drawArc(
+            color = color,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = Offset(size.width * 0.18f, size.height * 0.48f),
+            size = Size(size.width * 0.64f, size.height * 0.52f)
+        )
+    }
+}

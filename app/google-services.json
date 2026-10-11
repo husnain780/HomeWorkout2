@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "518948611678",
+    "project_id": "homeworkout-89555",
+    "storage_bucket": "homeworkout-89555.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518948611678:android:0a61fa4b19e6af6ce276cf",
+        "android_client_info": {
+          "package_name": "com.homeworkout.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "518948611678-aujtvibj868iq8d4a4d9ml9vcg8thf62.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.homeworkout.app",
+            "certificate_hash": "1430c3ed9978dc8af5babe6ed04b27716ad1f37d"
+          }
+        },
+        {
+          "client_id": "518948611678-1ptl4l608nlqpsqvkksu9e6ajkc2rfqg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbK1tJb7ehZE4Qn6GtV5FRafGqoWugxzI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "518948611678-1ptl4l608nlqpsqvkksu9e6ajkc2rfqg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,912 @@
+﻿package com.homeworkout.app.view
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.homeworkout.app.R
+import com.homeworkout.app.model.ExerciseRepository
+import com.homeworkout.app.model.WorkoutPlanRepository
+import com.homeworkout.app.ui.theme.AppBackground
+import com.homeworkout.app.ui.theme.BorderSoft
+import com.homeworkout.app.ui.theme.BrandGreen
+import com.homeworkout.app.ui.theme.BrandGreenDark
+import com.homeworkout.app.ui.theme.BrandGreenSoft
+import com.homeworkout.app.ui.theme.BrandMuted
+import com.homeworkout.app.ui.theme.BrandNavy
+import com.homeworkout.app.ui.theme.BrandText
+import kotlinx.coroutines.delay
+
+private enum class WorkoutPhase {
+    WORK,
+    REST
+}
+
+private data class WorkoutExercise(
+    val id: String,
+    val name: String,
+    val category: String,
+    val durationSeconds: Int,
+    val calories: Int,
+    val imageRes: Int
+)
+
+@Composable
+fun WorkoutScreen(
+    workoutId: String = "beginner_workout",
+    onCompleteWorkout: () -> Unit
+) {
+    val exercises = remember(workoutId) {
+        val plan = WorkoutPlanRepository.plans.firstOrNull { it.id == workoutId }
+        val ids = plan?.exerciseIds ?: listOf(
+            "jumping_jack",
+            "squat",
+            "push_up",
+            "plank"
+        )
+
+        ids.mapNotNull { id ->
+            ExerciseRepository.find(id)?.let { exercise ->
+                WorkoutExercise(
+                    id = exercise.id,
+                    name = exercise.name,
+                    category = exercise.category,
+                    durationSeconds = exercise.durationSeconds,
+                    calories = exercise.calories,
+                    imageRes = exercise.imageRes
+                )
+            }
+        }.ifEmpty {
+            listOf(
+                WorkoutExercise(
+                    "push_up",
+                    "Push Up",
+                    "Chest",
+                    30,
+                    8,
+                    R.drawable.push_up
+                )
+            )
+        }
+    }
+
+    var currentIndex by remember(workoutId) {
+        mutableStateOf(0)
+    }
+
+    var phase by remember(workoutId) {
+        mutableStateOf(WorkoutPhase.WORK)
+    }
+
+    var secondsLeft by remember(workoutId) {
+        mutableStateOf(exercises[0].durationSeconds)
+    }
+
+    var paused by remember(workoutId) {
+        mutableStateOf(false)
+    }
+
+    val current = exercises[currentIndex]
+
+    fun startNextExercise() {
+        if (currentIndex >= exercises.lastIndex) {
+            onCompleteWorkout()
+        } else {
+            currentIndex += 1
+            phase = WorkoutPhase.WORK
+            secondsLeft = exercises[currentIndex].durationSeconds
+            paused = false
+        }
+    }
+
+    fun startRest() {
+        if (currentIndex >= exercises.lastIndex) {
+            onCompleteWorkout()
+        } else {
+            phase = WorkoutPhase.REST
+            secondsLeft = 10
+            paused = false
+        }
+    }
+
+    fun skipCurrent() {
+        if (phase == WorkoutPhase.WORK) {
+            startRest()
+        } else {
+            startNextExercise()
+        }
+    }
+
+    LaunchedEffect(
+        currentIndex,
+        phase,
+        paused,
+        secondsLeft
+    ) {
+        if (paused) {
+            return@LaunchedEffect
+        }
+
+        delay(1000)
+
+        if (secondsLeft > 1) {
+            secondsLeft -= 1
+            return@LaunchedEffect
+        }
+
+        secondsLeft = 0
+
+        when (phase) {
+            WorkoutPhase.WORK -> {
+                startRest()
+            }
+
+            WorkoutPhase.REST -> {
+                startNextExercise()
+            }
+        }
+    }
+
+    val totalSeconds =
+        if (phase == WorkoutPhase.WORK) {
+            current.durationSeconds.coerceAtLeast(1)
+        } else {
+            10
+        }
+
+    val phaseProgress = (
+        1f - secondsLeft.toFloat() / totalSeconds.toFloat()
+    ).coerceIn(0f, 1f)
+
+    val overallProgress = (
+        currentIndex.toFloat() +
+                if (phase == WorkoutPhase.REST) {
+                    1f
+                } else {
+                    phaseProgress
+                }
+        ) / exercises.size.toFloat()
+
+    val workoutTitle = when (workoutId) {
+        "strength_builder" -> "Strength Builder"
+        "quick_home_workout" -> "Quick Home Workout"
+        else -> "Beginner Full Body"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppBackground)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 118.dp)
+        ) {
+
+            Header(
+                workoutTitle = workoutTitle,
+                currentIndex = currentIndex,
+                exerciseCount = exercises.size,
+                phase = phase
+            )
+
+            LinearProgressIndicator(
+                progress = {
+                    overallProgress.coerceIn(0f, 1f)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 20.dp,
+                        end = 20.dp
+                    )
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(50.dp)),
+                color = if (phase == WorkoutPhase.REST) {
+                    BrandNavy
+                } else {
+                    BrandGreen
+                },
+                trackColor = Color(0xFFE2E9E5)
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HeroExercise(
+                exercise = current,
+                phase = phase
+            )
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+            TimerPanel(
+                secondsLeft = secondsLeft,
+                phase = phase,
+                phaseProgress = phaseProgress
+            )
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+            ExerciseStrip(
+                exercises = exercises,
+                currentIndex = currentIndex,
+                onExerciseSelected = { index ->
+                    currentIndex = index
+                    phase = WorkoutPhase.WORK
+                    secondsLeft = exercises[index].durationSeconds
+                    paused = false
+                }
+            )
+        }
+
+        WorkoutControls(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
+            phase = phase,
+            paused = paused,
+            lastExercise = currentIndex == exercises.lastIndex,
+            onPauseResume = {
+                paused = !paused
+            },
+            onSkip = {
+                skipCurrent()
+            },
+            onSkipRest = {
+                startNextExercise()
+            },
+            onNext = {
+                startNextExercise()
+            }
+        )
+    }
+}
+
+@Composable
+private fun Header(
+    workoutTitle: String,
+    currentIndex: Int,
+    exerciseCount: Int,
+    phase: WorkoutPhase
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(
+                start = 20.dp,
+                top = 10.dp,
+                end = 20.dp,
+                bottom = 14.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+
+            Text(
+                text = if (phase == WorkoutPhase.WORK) {
+                    "ACTIVE WORKOUT"
+                } else {
+                    "RECOVERY"
+                },
+                color = if (phase == WorkoutPhase.WORK) {
+                    BrandGreenDark
+                } else {
+                    BrandNavy
+                },
+                fontSize = 9.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.3.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(3.dp)
+            )
+
+            Text(
+                text = workoutTitle,
+                color = BrandNavy,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            border = BorderStroke(
+                1.dp,
+                BorderSoft
+            ),
+            shadowElevation = 2.dp
+        ) {
+
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = 12.dp,
+                    vertical = 8.dp
+                ),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = "${currentIndex + 1}",
+                    color = BrandNavy,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Text(
+                    text = "OF $exerciseCount",
+                    color = BrandMuted,
+                    fontSize = 7.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.6.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroExercise(
+    exercise: WorkoutExercise,
+    phase: WorkoutPhase
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 16.dp,
+                end = 16.dp
+            ),
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 5.dp
+        )
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(292.dp)
+                .clip(RoundedCornerShape(30.dp))
+        ) {
+
+            Image(
+                painter = painterResource(
+                    exercise.imageRes
+                ),
+                contentDescription = exercise.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.78f)
+                            )
+                        )
+                    )
+            )
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(15.dp),
+                shape = RoundedCornerShape(50.dp),
+                color = if (phase == WorkoutPhase.WORK) {
+                    BrandGreen
+                } else {
+                    Color.White
+                }
+            ) {
+
+                Text(
+                    text = if (phase == WorkoutPhase.WORK) {
+                        "●  ACTIVE"
+                    } else {
+                        "REST"
+                    },
+                    modifier = Modifier.padding(
+                        horizontal = 11.dp,
+                        vertical = 7.dp
+                    ),
+                    color = if (phase == WorkoutPhase.WORK) {
+                        Color.White
+                    } else {
+                        BrandNavy
+                    },
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.7.sp
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(19.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+
+                Text(
+                    text = if (phase == WorkoutPhase.WORK) {
+                        exercise.category.uppercase()
+                    } else {
+                        "RECOVERY"
+                    },
+                    color = BrandGreenSoft,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.1.sp
+                )
+
+                Text(
+                    text = if (phase == WorkoutPhase.WORK) {
+                        exercise.name
+                    } else {
+                        "Take a breather"
+                    },
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    lineHeight = 32.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+                Text(
+                    text = if (phase == WorkoutPhase.WORK) {
+                        "${exercise.durationSeconds}s   •   ${exercise.calories} kcal"
+                    } else {
+                        "Next up: ${
+                            if (exercise.id.isNotEmpty()) {
+                                "continue training"
+                            } else {
+                                "finish"
+                            }
+                        }"
+                    },
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerPanel(
+    secondsLeft: Int,
+    phase: WorkoutPhase,
+    phaseProgress: Float
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = 20.dp,
+                end = 20.dp
+            ),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            1.dp,
+            BorderSoft
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 18.dp,
+                    vertical = 16.dp
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = if (phase == WorkoutPhase.WORK) {
+                    "TIME REMAINING"
+                } else {
+                    "REST TIME"
+                },
+                color = BrandMuted,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.3.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(1.dp)
+            )
+
+            Text(
+                text = "%02d".format(secondsLeft),
+                color = if (phase == WorkoutPhase.WORK) {
+                    BrandNavy
+                } else {
+                    BrandGreenDark
+                },
+                fontSize = 58.sp,
+                lineHeight = 62.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+
+            Text(
+                text = "SECONDS",
+                color = BrandMuted,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(
+                modifier = Modifier.height(11.dp)
+            )
+
+            LinearProgressIndicator(
+                progress = {
+                    phaseProgress.coerceIn(0f, 1f)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(50.dp)),
+                color = if (phase == WorkoutPhase.WORK) {
+                    BrandGreen
+                } else {
+                    BrandNavy
+                },
+                trackColor = Color(0xFFE7ECE9)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExerciseStrip(
+    exercises: List<WorkoutExercise>,
+    currentIndex: Int,
+    onExerciseSelected: (Int) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 20.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = "WORKOUT FLOW",
+                color = BrandNavy,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.9.sp,
+                modifier = Modifier.weight(1f)
+            )
+
+            Text(
+                text = "${currentIndex + 1}/${exercises.size}",
+                color = BrandGreenDark,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(
+                horizontal = 20.dp
+            ),
+            horizontalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+
+            itemsIndexed(exercises) { index, exercise ->
+
+                ExerciseThumb(
+                    exercise = exercise,
+                    selected = index == currentIndex,
+                    completed = index < currentIndex,
+                    onClick = {
+                        onExerciseSelected(index)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseThumb(
+    exercise: WorkoutExercise,
+    selected: Boolean,
+    completed: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(92.dp)
+            .height(108.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                BrandGreenSoft
+            } else {
+                Color.White
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            when {
+                selected -> BrandGreen
+                completed -> Color(0xFFC9E5D6)
+                else -> BorderSoft
+            }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (selected) 3.dp else 0.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier.padding(7.dp)
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(62.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            ) {
+
+                Image(
+                    painter = painterResource(
+                        exercise.imageRes
+                    ),
+                    contentDescription = exercise.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                if (completed) {
+
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(5.dp),
+                        shape = CircleShape,
+                        color = BrandGreen
+                    ) {
+
+                        Box(
+                            modifier = Modifier.size(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Text(
+                                text = "✓",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+
+            Text(
+                text = exercise.name,
+                modifier = Modifier.fillMaxWidth(),
+                color = BrandNavy,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkoutControls(
+    modifier: Modifier,
+    phase: WorkoutPhase,
+    paused: Boolean,
+    lastExercise: Boolean,
+    onPauseResume: () -> Unit,
+    onSkip: () -> Unit,
+    onSkipRest: () -> Unit,
+    onNext: () -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White,
+        shadowElevation = 14.dp,
+        tonalElevation = 4.dp,
+        border = BorderStroke(
+            1.dp,
+            BorderSoft
+        )
+    ) {
+
+        if (phase == WorkoutPhase.REST) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 18.dp,
+                        top = 12.dp,
+                        end = 18.dp,
+                        bottom = 12.dp
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+
+                OutlinedButton(
+                    onClick = onSkipRest,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        BorderSoft
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = BrandNavy
+                    )
+                ) {
+
+                    Text(
+                        text = "SKIP REST",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = Color.White
+                    )
+                ) {
+
+                    Text(
+                        text = if (lastExercise) {
+                            "FINISH"
+                        } else {
+                            "NEXT  $ARROW"
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            }
+
+        } else {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 18.dp,
+                        top = 12.dp,
+                        end = 18.dp,
+                        bottom = 12.dp
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+
+                OutlinedButton(
+                    onClick = onPauseResume,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        BorderSoft
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = BrandNavy
+                    )
+                ) {
+
+                    Text(
+                        text = if (paused) {
+                            "RESUME"
+                        } else {
+                            "PAUSE"
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+
+                Button(
+                    onClick = onSkip,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandGreen,
+                        contentColor = Color.White
+                    )
+                ) {
+
+                    Text(
+                        text = if (lastExercise) {
+                            "FINISH"
+                        } else {
+                            "SKIP  $ARROW"
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private const val ARROW = "›"

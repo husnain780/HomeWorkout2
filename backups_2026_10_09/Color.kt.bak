@@ -1,0 +1,23 @@
+﻿package com.homeworkout.app.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val BrandGreen = Color(0xFF1F9A6E)
+val BrandGreenDark = Color(0xFF147A57)
+val BrandGreenSoft = Color(0xFFDFF6EB)
+val BrandMint = Color(0xFFE8F6EF)
+
+val BrandNavy = Color(0xFF12233D)
+val BrandText = Color(0xFF1C2738)
+val BrandMuted = Color(0xFF6B7787)
+
+val AppBackground = Color(0xFFF6F7F3)
+val SurfaceWhite = Color(0xFFFFFFFF)
+val BorderSoft = Color(0xFFE4E8E3)
+
+val SuccessGreen = Color(0xFF1F9A6E)
+val WarningOrange = Color(0xFFF59E0B)
+val DangerRed = Color(0xFFD64545)
+
+val ChartGreen = Color(0xFF2BB57C)
+val ChartTrack = Color(0xFFE3EAE5)
